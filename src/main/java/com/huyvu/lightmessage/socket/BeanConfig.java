@@ -15,6 +15,7 @@ public class BeanConfig {
     EngineIoServer engineIoServer() {
         var opt = EngineIoServerOptions.newFromDefault();
         opt.setCorsHandlingDisabled(true);
+
         var eioServer = new EngineIoServer(opt);
         return eioServer;
     }
