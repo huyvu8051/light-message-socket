@@ -8,6 +8,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
 
 import java.net.HttpCookie;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -30,8 +32,8 @@ public class ChatBroadcastProvider {
                 socket.disconnect(true);
                 return;
             }
-            var first = cookie.getFirst();
-            var parse = HttpCookie.parse(first);
+            var cookieFirst = cookie.getFirst();
+            var parse = this.parseCookies(cookieFirst);
 
             var cookieOptional = parse.stream()
                     .filter(c -> AUTHORIZATION_COOKIE_HEADER.equals(c.getName()))
@@ -53,15 +55,27 @@ public class ChatBroadcastProvider {
 
             log.info("Client {} has connected.", value);
             map.put(value, socket);
-        });
 
-        namespace.on("disconnect", args -> {
-            SocketIoSocket socket = (SocketIoSocket) args[0];
-            log.info("Client {} has disconnected.", socket.getId());
-            map.remove(socket.getId());
+
+            socket.on("disconnect", args1 -> {
+                log.info("Client {} has disconnected.", value);
+                map.remove(value);
+            });
         });
     }
+    private List<HttpCookie> parseCookies(String header) {
+        List<HttpCookie> cookies = new ArrayList<>();
+        String[] cookiePairs = header.split("; "); // Tách từng cookie
 
+        for (String pair : cookiePairs) {
+            try {
+                cookies.addAll(HttpCookie.parse(pair)); // Parse từng cookie riêng lẻ
+            } catch (IllegalArgumentException e) {
+                System.err.println("Invalid cookie format: " + pair);
+            }
+        }
+        return cookies;
+    }
     public void send(String id, MessageKafkaDTO message) {
         var client = map.get(id);
         if (client != null) {
