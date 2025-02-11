@@ -1,17 +1,14 @@
 package com.huyvu.lightmessage.socket;
 
 
-import com.huyvu.lightmessage.entity.MessageEntity;
+import com.huyvu.lightmessage.entity.MessageKafkaDTO;
 import io.socket.socketio.server.SocketIoServer;
 import io.socket.socketio.server.SocketIoSocket;
-import jakarta.servlet.http.Cookie;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
 
 import java.net.HttpCookie;
-import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
@@ -65,7 +62,7 @@ public class ChatBroadcastProvider {
         });
     }
 
-    public void send(String id, MessageEntity message) {
+    public void send(String id, MessageKafkaDTO message) {
         var client = map.get(id);
         if (client != null) {
             client.send("message", JsonUtils.toJsonObj(message));

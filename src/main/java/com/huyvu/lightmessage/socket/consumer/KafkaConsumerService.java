@@ -1,6 +1,6 @@
 package com.huyvu.lightmessage.socket.consumer;
 
-import com.huyvu.lightmessage.entity.MessageEntity;
+import com.huyvu.lightmessage.entity.MessageKafkaDTO;
 import com.huyvu.lightmessage.socket.ChatBroadcastProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,7 +15,7 @@ public class KafkaConsumerService {
     private final ChatBroadcastProvider chatBroadcastProvider;
 
     @KafkaListener(topics = TOPIC, groupId = "my-group")
-    public void listen(MessageEntity message) {
+    public void listen(MessageKafkaDTO message) {
         log.info("Received message: {}", message);
         for (var memberId : message.memberIds()) {
             chatBroadcastProvider.send(String.valueOf(memberId), message);
