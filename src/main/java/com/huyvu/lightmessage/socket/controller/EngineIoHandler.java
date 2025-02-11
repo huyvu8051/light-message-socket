@@ -1,4 +1,4 @@
-package com.huyvu.lightmessage.socket;
+package com.huyvu.lightmessage.socket.controller;
 
 import io.socket.engineio.server.EngineIoServer;
 import io.socket.engineio.server.EngineIoWebSocket;

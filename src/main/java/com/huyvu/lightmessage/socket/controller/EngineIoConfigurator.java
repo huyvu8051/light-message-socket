@@ -1,4 +1,4 @@
-package com.huyvu.lightmessage.socket;
+package com.huyvu.lightmessage.socket.controller;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
