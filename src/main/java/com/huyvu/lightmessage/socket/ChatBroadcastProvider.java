@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Configuration;
 
 import java.net.HttpCookie;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -25,6 +26,10 @@ public class ChatBroadcastProvider {
         var namespace = sio.namespace(CHAT_NAMESPACE);
         namespace.on("connection", args -> {
             SocketIoSocket socket = (SocketIoSocket) args[0];
+
+            socket.send("message", "hi !!!");
+
+
             var initialHeaders = socket.getInitialHeaders();
             var cookie = initialHeaders.get("cookie");
             if (cookie == null) {
@@ -54,12 +59,11 @@ public class ChatBroadcastProvider {
             }
 
             log.info("Client {} has connected.", value);
-            map.put(value, socket);
-
+            map.put(socket.getId(), socket);
 
             socket.on("disconnect", args1 -> {
                 log.info("Client {} has disconnected.", value);
-                map.remove(value);
+                map.remove(socket.getId());
             });
         });
     }
