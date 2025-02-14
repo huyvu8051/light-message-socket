@@ -2,6 +2,7 @@ package com.huyvu.lightmessage.socket;
 
 
 import com.huyvu.lightmessage.entity.MessageKafkaDTO;
+import io.socket.socketio.server.SocketIoNamespace;
 import io.socket.socketio.server.SocketIoServer;
 import io.socket.socketio.server.SocketIoSocket;
 import lombok.extern.slf4j.Slf4j;
@@ -19,10 +20,9 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ChatBroadcastProvider {
     public static final String CHAT_NAMESPACE = "chat";
     private static final String AUTHORIZATION_COOKIE_HEADER = "Authorization";
-    private final Map<String, SocketIoSocket> map = new ConcurrentHashMap<>();
-
+    private final SocketIoServer server;
     public ChatBroadcastProvider(SocketIoServer sio) {
-
+        this.server = sio;
         var namespace = sio.namespace(CHAT_NAMESPACE);
         namespace.on("connection", args -> {
             SocketIoSocket socket = (SocketIoSocket) args[0];
@@ -30,43 +30,50 @@ public class ChatBroadcastProvider {
             socket.send("message", "hi !!!");
 
 
-            var initialHeaders = socket.getInitialHeaders();
-            var cookie = initialHeaders.get("cookie");
-            if (cookie == null) {
-                log.error("cookie is null");
-                socket.disconnect(true);
-                return;
-            }
-            var cookieFirst = cookie.getFirst();
-            var parse = this.parseCookies(cookieFirst);
+            var userId = getUserId(socket);
+            if (userId == null) return;
 
-            var cookieOptional = parse.stream()
-                    .filter(c -> AUTHORIZATION_COOKIE_HEADER.equals(c.getName()))
-                    .findFirst();
+            log.info("Client connected {} {}", userId, socket.getId());
 
-            if (cookieOptional.isEmpty()) {
-                log.error("cookie not found");
-                socket.disconnect(true);
-                return;
-            }
-
-            var httpCookie = cookieOptional.get();
-            var value = httpCookie.getValue();
-            if (value.isBlank()) {
-                log.error("cookie value is blank");
-                socket.disconnect(true);
-                return;
-            }
-
-            log.info("Client {} has connected.", value);
-            map.put(socket.getId(), socket);
+            socket.joinRoom(userId);
 
             socket.on("disconnect", args1 -> {
-                log.info("Client {} has disconnected.", value);
-                map.remove(socket.getId());
+                log.info("Client disconnected {} {}", userId, socket.getId());
             });
         });
     }
+
+    private String getUserId(SocketIoSocket socket) {
+        var initialHeaders = socket.getInitialHeaders();
+        var cookie = initialHeaders.get("cookie");
+        if (cookie == null) {
+            log.error("cookie is null");
+            socket.disconnect(true);
+            return null;
+        }
+        var cookieFirst = cookie.getFirst();
+        var parse = this.parseCookies(cookieFirst);
+
+        var cookieOptional = parse.stream()
+                .filter(c -> AUTHORIZATION_COOKIE_HEADER.equals(c.getName()))
+                .findFirst();
+
+        if (cookieOptional.isEmpty()) {
+            log.error("cookie not found");
+            socket.disconnect(true);
+            return null;
+        }
+
+        var httpCookie = cookieOptional.get();
+        var userId = httpCookie.getValue();
+        if (userId.isBlank()) {
+            log.error("cookie value is blank");
+            socket.disconnect(true);
+            return null;
+        }
+        return userId;
+    }
+
     private List<HttpCookie> parseCookies(String header) {
         List<HttpCookie> cookies = new ArrayList<>();
         String[] cookiePairs = header.split("; "); // Tách từng cookie
@@ -80,10 +87,11 @@ public class ChatBroadcastProvider {
         }
         return cookies;
     }
-    public void send(String id, MessageKafkaDTO message) {
-        var client = map.get(id);
-        if (client != null) {
-            client.send("message", JsonUtils.toJsonObj(message));
-        }
+    public void send(String userId, MessageKafkaDTO message) {
+
+        var namespace = server.namespace(CHAT_NAMESPACE);
+        namespace.broadcast(userId, "message", JsonUtils.toJsonObj(message));
+
+
     }
 }

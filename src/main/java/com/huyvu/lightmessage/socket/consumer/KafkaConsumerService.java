@@ -16,7 +16,7 @@ public class KafkaConsumerService {
 
     @KafkaListener(topics = TOPIC, groupId = "my-group")
     public void listen(MessageKafkaDTO message) {
-        log.info("Received message: {}", message);
+//        log.info("Received message: {}", message);
         for (var memberId : message.memberIds()) {
             chatBroadcastProvider.send(String.valueOf(memberId), message);
         }
